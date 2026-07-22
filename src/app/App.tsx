@@ -161,6 +161,7 @@ function Marquee() {
         ))}
       </div>
       <style>{`@keyframes marqueeScroll { from { transform:translateX(0) } to { transform:translateX(-50%) } }`}</style>
+      <style>{`@keyframes spinSlow { from { transform:rotate(0deg) } to { transform:rotate(360deg) } } @keyframes spinReverse { from { transform:rotate(0deg) } to { transform:rotate(-360deg) } } @keyframes floatUp { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} } @keyframes heroFade { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }`}</style>
     </div>
   );
 }
@@ -277,14 +278,23 @@ export default function App() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // Section tracking
+  // Section tracking — scroll-position based, works in both directions
   useEffect(() => {
     const ids = ["about","portfolio","experience","skills","contact"];
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); });
-    }, { threshold: 0.3, rootMargin: "-20% 0px -60% 0px" });
-    ids.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
-    return () => obs.disconnect();
+    const fn = () => {
+      const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 80;
+      if (atBottom) { setActiveSection("contact"); return; }
+      const mid = window.scrollY + window.innerHeight * 0.35;
+      let current = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= mid) current = id;
+      }
+      setActiveSection(current);
+    };
+    window.addEventListener("scroll", fn, { passive:true });
+    fn();
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
   const filteredPf = pfCat === "Все" ? PORTFOLIO : PORTFOLIO.filter(p => p.category === pfCat);
@@ -307,7 +317,7 @@ export default function App() {
         style={{ background: scrolled ? "rgba(242,237,228,0.92)" : "transparent", backdropFilter: scrolled ? "blur(18px)" : "none", borderBottom: scrolled ? `1px solid ${BORDER}` : "1px solid transparent" }}>
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <a href="#about" style={{ fontFamily:FD, fontStyle:"italic", fontSize:"1.1rem", fontWeight:700, color:INK, textDecoration:"none" }}>
-            А. Борисов
+            Антон Борисов
           </a>
           <nav className="hidden md:flex items-center gap-1">
             {NAV.map(n => (
@@ -331,12 +341,7 @@ export default function App() {
         <div className="flex-1 max-w-7xl mx-auto px-6 md:px-10 w-full grid md:grid-cols-[1fr_420px] gap-10 items-center py-16 md:py-0">
           {/* Left: text */}
           <div>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background:GREEN }} />
-              <span className="text-sm" style={{ fontFamily:FM, color:GREEN }}>Открыт к предложениям · Москва</span>
-            </div>
-
-            <h1 style={{ fontFamily:FD, fontWeight:900, lineHeight:0.9, fontSize:"clamp(72px,11vw,156px)", letterSpacing:"-0.02em" }}>
+            <h1 style={{ fontFamily:FD, fontWeight:900, lineHeight:0.9, fontSize:"clamp(72px,11vw,156px)", letterSpacing:"-0.02em", animation:"heroFade 0.9s ease both" }}>
               Антон<br />
               <span style={{ fontStyle:"italic", color:GREEN }}>Борисов</span>
             </h1>
@@ -350,9 +355,8 @@ export default function App() {
             </div>
 
             <p className="text-base leading-relaxed max-w-lg mb-10" style={{ color:"#4A4740" }}>
-              Проектирую продукты, которые одинаково удобны для пользователя и эффективны для бизнеса.
-              Соединяю <strong style={{ color:INK }}>педагогический дизайн</strong> и современные{" "}
-              <strong style={{ color:INK }}>UX-практики</strong> в единое решение.
+              Проектирую продукты, которые одинаково удобны для пользователя и&nbsp;эффективны для бизнеса.
+              Соединяю <strong style={{ color:INK }}>педагогический дизайн</strong> и&nbsp;<strong style={{ color:INK }}>UX-практики</strong> в&nbsp;единое решение.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 mb-12">
@@ -376,20 +380,24 @@ export default function App() {
 
           {/* Right: photo */}
           <div className="relative flex items-center justify-center">
-            {/* Decorative ring */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[420px] h-[420px] rounded-full border-[1.5px] border-dashed opacity-20" style={{ borderColor:GREEN }} />
+            {/* Outer dashed ring — clockwise */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[430px] h-[430px] rounded-full border-[2px] border-dashed"
+                style={{ borderColor:GREEN, opacity:0.35, animation:"spinSlow 32s linear infinite" }} />
             </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[340px] h-[340px] rounded-full border opacity-10" style={{ borderColor:INK }} />
+            {/* Inner dashed ring — counter-clockwise */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[360px] h-[360px] rounded-full border-[2px] border-dashed"
+                style={{ borderColor:GREEN, opacity:0.2, animation:"spinReverse 24s linear infinite" }} />
             </div>
 
             {/* Photo */}
-            <div className="relative z-10 w-[340px] h-[420px] rounded-[48px] overflow-hidden shadow-2xl border-2" style={{ borderColor:BORDER }}>
+            <div className="relative z-10 w-[340px] h-[420px] rounded-[48px] overflow-hidden shadow-2xl border-2"
+              style={{ borderColor:BORDER, animation:"heroFade 1s ease both" }}>
               <img src={PHOTO} alt="Антон Борисов — продуктовый дизайнер" className="w-full h-full object-cover object-top" />
-              {/* Bottom overlay */}
+              {/* Glass overlay at bottom */}
               <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex items-end justify-between"
-                style={{ background:"linear-gradient(to top, rgba(17,16,9,0.7) 0%, transparent 100%)" }}>
+                style={{ background:"linear-gradient(to top, rgba(17,16,9,0.65) 0%, transparent 100%)", backdropFilter:"blur(2px)" }}>
                 <div>
                   <p className="text-white text-xs mb-0.5" style={{ fontFamily:FM }}>Опыт работы</p>
                   <p style={{ fontFamily:FD, fontStyle:"italic", color:"white", fontSize:"1.5rem", fontWeight:700, lineHeight:1 }}>17+ лет</p>
@@ -401,14 +409,14 @@ export default function App() {
               </div>
             </div>
 
-            {/* Floating chip top */}
+            {/* Floating chip top — glass */}
             <div className="absolute top-8 -right-4 px-4 py-2.5 rounded-2xl shadow-lg border text-sm font-medium z-20"
-              style={{ background:"#FBF8F3", borderColor:BORDER, color:INK }}>
+              style={{ background:"rgba(251,248,243,0.7)", backdropFilter:"blur(12px)", borderColor:"rgba(217,210,199,0.6)", color:INK, animation:"floatUp 5s ease-in-out infinite" }}>
               Figma<span style={{ color:GREEN }}>✦</span>UX/UI
             </div>
-            {/* Floating chip bottom */}
+            {/* Floating chip bottom — glass dark */}
             <div className="absolute bottom-16 -left-6 px-4 py-2.5 rounded-2xl shadow-lg border text-sm z-20"
-              style={{ background:INK, color:"rgba(255,255,255,0.8)", fontFamily:FM }}>
+              style={{ background:"rgba(17,16,9,0.75)", backdropFilter:"blur(12px)", borderColor:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.85)", fontFamily:FM, animation:"floatUp 6s ease-in-out infinite 1s" }}>
               EdTech / E-Learning
             </div>
           </div>
@@ -544,7 +552,7 @@ export default function App() {
               return (
                 <FadeUp key={key} delay={i*60}>
                   <div className="rounded-2xl overflow-hidden border transition-all duration-300"
-                    style={{ borderColor: isOpen ? exp.accent+"60" : BORDER, background:"#FBF8F3", borderLeftWidth:3, borderLeftColor:exp.accent, boxShadow: isOpen ? `0 4px 24px ${exp.accent}18` : "none" }}>
+                    style={{ borderTopColor: isOpen ? exp.accent+"60" : BORDER, borderRightColor: isOpen ? exp.accent+"60" : BORDER, borderBottomColor: isOpen ? exp.accent+"60" : BORDER, borderLeftColor:exp.accent, borderLeftWidth:3, background:"#FBF8F3", boxShadow: isOpen ? `0 4px 24px ${exp.accent}18` : "none" }}>
                     <button className="w-full text-left px-8 py-6 flex items-start justify-between gap-6 group"
                       onClick={() => setOpenExp(isOpen ? null : key)}>
                       <div className="flex-1">
@@ -560,7 +568,7 @@ export default function App() {
                         <ChevronRight size={14} />
                       </div>
                     </button>
-                    <div className="overflow-hidden transition-all duration-350" style={{ maxHeight: isOpen ? "500px" : 0 }}>
+                    <div className="overflow-hidden transition-all duration-350" style={{ maxHeight: isOpen ? "1000px" : 0 }}>
                       <div className="px-8 pb-7 border-t pt-5" style={{ borderColor:BORDER }}>
                         <ul className="space-y-3">
                           {exp.items.map((item, ii) => (
@@ -646,13 +654,10 @@ export default function App() {
 
       {/* ─── FOOTER ─────────────────────────────────────────────────── */}
       <footer className="border-t py-8" style={{ borderColor:BORDER }}>
-        <div className="max-w-7xl mx-auto px-6 md:px-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span style={{ fontFamily:FD, fontStyle:"italic", color:MUTED }}>Борисов Антон · Продуктовый дизайнер</span>
-          <div className="flex gap-6 text-xs" style={{ fontFamily:FM, color:MUTED }}>
-            <span>UX/UI · EdTech · Enterprise</span>
-            <span>·</span>
-            <span>Москва {new Date().getFullYear()}</span>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-center">
+          <p className="text-xs text-center" style={{ fontFamily:FM, color:MUTED }}>
+            Навайбкодено Антоном Борисовым · Москва {new Date().getFullYear()}
+          </p>
         </div>
       </footer>
     </div>
